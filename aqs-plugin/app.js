@@ -129,7 +129,7 @@ async function checkAqsStatus() {
     statusEl.className = 'status';
     
     try {
-        const data = await aqsFetch('util/isAvailable', {});
+        const data = await aqsFetch('metaData/isAvailable', {});
         statusEl.innerText = 'API is available!';
         statusEl.classList.add('success');
     } catch (error) {
