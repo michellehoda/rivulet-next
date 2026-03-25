@@ -138,33 +138,6 @@ async function checkAqsStatus() {
     }
 }
 
-async function loadParameters() {
-    const pc = document.getElementById('pollutant-class').value;
-    const container = document.getElementById('parameters-container');
-    container.innerHTML = 'Loading...';
-    
-    try {
-        const data = await aqsFetch('metaData/parametersByClass', { pc });
-        parameters = data.Data;
-        container.innerHTML = '';
-        parameters.forEach(p => {
-            const label = document.createElement('label');
-            label.style.display = 'block';
-            label.style.fontWeight = 'normal';
-            const cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.value = p.code;
-            cb.name = 'parameter';
-            if (p.code === '44201' || p.code === '88101') cb.checked = true;
-            label.appendChild(cb);
-            label.appendChild(document.createTextNode(` ${p.description} (${p.code})`));
-            container.appendChild(label);
-        });
-    } catch (error) {
-        container.innerHTML = 'Error loading parameters: ' + error.message;
-    }
-}
-
 async function findMonitors() {
     const minlat = document.getElementById('min-lat').value;
     const maxlat = document.getElementById('max-lat').value;

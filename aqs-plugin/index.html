@@ -174,14 +174,14 @@
     <!-- Part III: Search & Fetch -->
     <div id="tab-fetch" class="tab-content">
         <div class="form-group">
-            <label for="pollutant-class">Pollutant Class:</label>
-            <select id="pollutant-class">
-                <option value="AQI POLLUTANTS">AQI POLLUTANTS</option>
-            </select>
-            <button onclick="loadParameters()" style="margin-top:5px;">Load Parameters</button>
-        </div>
-        <div id="parameters-container" style="margin-bottom:15px; max-height: 100px; overflow-y: auto;">
-            <!-- Parameter checkboxes will be loaded here -->
+            <label>Select Pollutants:</label>
+            <div id="pollutants-selection" style="margin-bottom:15px; max-height: 150px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+                <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="88101" checked> PM2.5 (88101)</label>
+                <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="81102"> PM10 (81102)</label>
+                <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="44201" checked> Ozone (44201)</label>
+                <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="42602"> NO2 (42602)</label>
+                <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="42101"> Carbon Monoxide (42101)</label>
+            </div>
         </div>
         
         <button onclick="findMonitors()">Find Monitors in Bounding Box</button>
