@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CODAP Simple Test</title>
+    <script src="https://concord-consortium.github.io/codap-data-interactive-api/codapInterface.js"></script>
+    
+    <script src="app.js"></script>
+    
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #message {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h2>Vanilla CODAP Importer</h2>
+    <p>Click below to build a table and add 3 rows of dummy data.</p>
+    
+    <button id="import-btn">Import Dummy Data</button>
+    <div id="message"></div>
+</body>
+</html>
