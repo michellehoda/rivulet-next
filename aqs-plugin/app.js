@@ -88,11 +88,12 @@ function showTab(tabId) {
     
     // Find the tab element that matches this tabId and set it active
     const tabIndexMap = {
-        'tab-credentials': 0,
-        'tab-area': 1,
-        'tab-fetch': 2,
-        'tab-aqi': 3,
-        'tab-neighbors': 4
+        'tab-intro': 0,
+        'tab-credentials': 1,
+        'tab-area': 2,
+        'tab-fetch': 3,
+        'tab-aqi': 4,
+        'tab-neighbors': 5
     };
     const tabs = document.querySelectorAll('.tab');
     if (tabs[tabIndexMap[tabId]]) {

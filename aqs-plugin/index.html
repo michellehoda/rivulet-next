@@ -179,7 +179,8 @@
     <h2>Rivulet: AQS Data Explorer</h2>
     
     <div class="tabs">
-        <div class="tab active" onclick="showTab('tab-credentials')">I: Credentials</div>
+        <div class="tab active" onclick="showTab('tab-intro')">Intro</div>
+        <div class="tab" onclick="showTab('tab-credentials')">I: Credentials</div>
         <div class="tab" onclick="showTab('tab-area')">II: Location & Date</div>
         <div class="tab" onclick="showTab('tab-fetch')">III: Fetch Data</div>
         <div class="tab" onclick="showTab('tab-aqi')">IV: AQI Calculator</div>
@@ -187,8 +188,31 @@
     </div>
     
     <div class="container">
+        <!-- Intro Tab -->
+        <div id="tab-intro" class="tab-content active">
+            <h3>Exploring Air Quality Mechanistically</h3>
+            <p>Air quality is a complex phenomenon driven by a variety of chemical processes and atmospheric conditions. This tool allows you to explore these complexities using authentic data from the <strong>U.S. EPA's Air Quality System (AQS)</strong>.</p>
+            
+            <p>By using this plugin, you will move beyond simple labels of "good" or "bad" air to understand the <strong>mechanisms</strong> behind different types of pollution. You can explore how pollutants like Ozone and Particulate Matter behave across different times of day, seasons, and geographic locations.</p>
+            
+            <div style="background: var(--light-gray); padding: 15px; border-left: 4px solid var(--california-gold); margin-top: 20px;">
+                <label style="margin-bottom: 5px;">What can you do in each tab?</label>
+                <ul style="padding-left: 20px; font-size: 0.9rem; color: #444;">
+                    <li><strong>I: Credentials</strong> – Securely connect to the EPA's validated data infrastructure.</li>
+                    <li><strong>II: Location & Date</strong> – Set the spatial and temporal boundaries for your investigation.</li>
+                    <li><strong>III: Fetch Data</strong> – Select specific pollutants to see their unique "signatures" across days or weeks.</li>
+                    <li><strong>IV: AQI Calculator</strong> – Learn how complex concentration data is modeled into a single "public health" risk index.</li>
+                    <li><strong>V: Neighbors</strong> – Compare nearby sites to investigate how local features (like freeways or coastal breezes) impact air quality.</li>
+                </ul>
+            </div>
+            
+            <p style="margin-top: 20px; font-style: italic; font-size: 0.85rem;">Developed as part of NSF Grant 2445609 to support data analysis and mechanistic reasoning in science education.</p>
+            
+            <button onclick="showTab('tab-credentials')" style="margin-top: 10px;">Get Started with Credentials &rarr;</button>
+        </div>
+
         <!-- Part I: Credentials -->
-        <div id="tab-credentials" class="tab-content active">
+        <div id="tab-credentials" class="tab-content">
             <p>Enter your AQS API credentials. You can register at <a href="https://aqs.epa.gov/data/api/signup?email=your_email@example.com" target="_blank">epa.gov</a>.</p>
             <div class="form-group">
                 <label for="email">Email:</label>
