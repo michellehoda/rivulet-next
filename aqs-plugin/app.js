@@ -157,39 +157,72 @@ async function findMonitors() {
     listEl.innerHTML = 'Searching for monitors...';
     
     try {
-        const data = await aqsFetch('monitors/byBox', {
-            param: selectedParams.join(','),
-            bdate: date,
-            edate: date,
-            minlat, maxlat, minlon, maxlon
-        });
+        // Fetch both monitor metadata and daily data in parallel
+        const [monitorRes, dailyRes] = await Promise.all([
+            aqsFetch('monitors/byBox', {
+                param: selectedParams.join(','),
+                bdate: date,
+                edate: date,
+                minlat, maxlat, minlon, maxlon
+            }),
+            aqsFetch('dailyData/byBox', {
+                param: selectedParams.join(','),
+                bdate: date,
+                edate: date,
+                minlat, maxlat, minlon, maxlon
+            })
+        ]);
         
-        monitors = data.Data;
-        if (monitors.length === 0) {
+        const monitorMetadata = monitorRes.Data || [];
+        const dailyData = dailyRes.Data || [];
+
+        if (monitorMetadata.length === 0) {
             listEl.innerHTML = 'No monitors found in this area for selected parameters.';
             return;
         }
-        
-        // Group by site to show unique monitors
-        const sites = {};
-        monitors.forEach(m => {
-            const id = `${m.state_code}-${m.county_code}-${m.site_number}`;
-            if (!sites[id]) {
-                sites[id] = {
-                    id,
-                    state_code: m.state_code,
-                    county_code: m.county_code,
-                    site_number: m.site_number,
-                    address: m.address,
-                    city: m.city_name,
-                    parameters: []
-                };
-            }
-            sites[id].parameters.push(m.parameter_code);
+
+        // Map daily data to see which sites have which parameters available
+        const siteDailyParams = {};
+        dailyData.forEach(d => {
+            const id = `${d.state_code}-${d.county_code}-${d.site_number}`;
+            if (!siteDailyParams[id]) siteDailyParams[id] = new Set();
+            siteDailyParams[id].add(d.parameter_code);
         });
         
+        // Group by site to show unique monitors, but only if they have ALL selected parameters in dailyData
+        const sites = {};
+        monitorMetadata.forEach(m => {
+            const id = `${m.state_code}-${m.county_code}-${m.site_number}`;
+            
+            // Filter: Does this site have ALL selected parameters in the daily data?
+            const hasAllParams = selectedParams.every(p => siteDailyParams[id] && siteDailyParams[id].has(p));
+            
+            if (hasAllParams) {
+                if (!sites[id]) {
+                    sites[id] = {
+                        id,
+                        state_code: m.state_code,
+                        county_code: m.county_code,
+                        site_number: m.site_number,
+                        address: m.address,
+                        city: m.city_name,
+                        parameters: []
+                    };
+                }
+                if (!sites[id].parameters.includes(m.parameter_code)) {
+                    sites[id].parameters.push(m.parameter_code);
+                }
+            }
+        });
+        
+        const filteredSiteList = Object.values(sites);
+        if (filteredSiteList.length === 0) {
+            listEl.innerHTML = 'No sites found that have data for ALL selected parameters on this date.';
+            return;
+        }
+        
         listEl.innerHTML = '<strong>Select a monitor:</strong><br>';
-        Object.values(sites).forEach(site => {
+        filteredSiteList.forEach(site => {
             const item = document.createElement('div');
             item.className = 'monitor-item';
             item.innerHTML = `
