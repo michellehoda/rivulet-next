@@ -418,6 +418,14 @@ async function fetchNeighborData() {
 async function importToCodap(data, contextName, contextTitle) {
     if (data.length === 0) return;
     
+    // Add combined datetime_local field if date_local and time_local exist
+    data.forEach(item => {
+        if (item.date_local && item.time_local && !item.datetime_local) {
+            // AQS date_local is YYYY-MM-DD and time_local is HH:MM
+            item.datetime_local = `${item.date_local} ${item.time_local}`;
+        }
+    });
+
     // Define which attributes belong to the parent (Pollutant) level
     const parentAttrNames = ['parameter_code', 'parameter', 'units_of_measure'];
     
