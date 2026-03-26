@@ -242,9 +242,14 @@ async function fetchSampleData() {
             site: selectedMonitor.site_number
         });
         
-        await importToCodap(data.Data, 'AQS_Sample_Data', 'Sample Data');
-        statusEl.innerText = 'Data imported to CODAP successfully!';
-        statusEl.classList.add('success');
+        const success = await importToCodap(data.Data, 'AQS_Sample_Data', 'Sample Data');
+        if (success) {
+            statusEl.innerText = 'Data imported to CODAP successfully!';
+            statusEl.classList.add('success');
+        } else {
+            statusEl.innerText = 'No data found for the selected criteria. Nothing was imported.';
+            statusEl.classList.add('warning');
+        }
     } catch (error) {
         statusEl.innerText = 'Error: ' + error.message;
         statusEl.classList.add('error');
@@ -286,10 +291,15 @@ async function fetchAqiData() {
         
         // Process data to include individual AQI and composite AQI
         const processedData = processAqiData(data.Data);
-        await importToCodap(processedData, 'AQS_AQI_Data', 'AQI Data');
+        const success = await importToCodap(processedData, 'AQS_AQI_Data', 'AQI Data');
         
-        statusEl.innerText = 'AQI Data imported to CODAP successfully!';
-        statusEl.classList.add('success');
+        if (success) {
+            statusEl.innerText = 'AQI Data imported to CODAP successfully!';
+            statusEl.classList.add('success');
+        } else {
+            statusEl.innerText = 'No AQI data found for the selected monitor and date range.';
+            statusEl.classList.add('warning');
+        }
     } catch (error) {
         statusEl.innerText = 'Error: ' + error.message;
         statusEl.classList.add('error');
@@ -406,9 +416,14 @@ async function fetchNeighborData() {
             minlat, maxlat, minlon, maxlon
         });
         
-        await importToCodap(data.Data, 'AQS_Neighbor_Data', 'Neighbor Data');
-        statusEl.innerText = 'Neighbor Data imported to CODAP successfully!';
-        statusEl.classList.add('success');
+        const success = await importToCodap(data.Data, 'AQS_Neighbor_Data', 'Neighbor Data');
+        if (success) {
+            statusEl.innerText = 'Neighbor Data imported to CODAP successfully!';
+            statusEl.classList.add('success');
+        } else {
+            statusEl.innerText = 'No neighbor data found for the selected criteria.';
+            statusEl.classList.add('warning');
+        }
     } catch (error) {
         statusEl.innerText = 'Error: ' + error.message;
         statusEl.classList.add('error');
@@ -416,7 +431,7 @@ async function fetchNeighborData() {
 }
 
 async function importToCodap(data, contextName, contextTitle) {
-    if (data.length === 0) return;
+    if (!data || data.length === 0) return false;
     
     // Add combined datetime_local field if date_local and time_local exist
     data.forEach(item => {
@@ -483,4 +498,6 @@ async function importToCodap(data, contextName, contextTitle) {
         resource: `dataContext[${contextName}].item`,
         values: data
     });
+
+    return true;
 }
