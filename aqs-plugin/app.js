@@ -157,7 +157,7 @@ async function findMonitors() {
     listEl.innerHTML = 'Searching for monitors...';
     
     try {
-        const data = await aqsFetch('dailyData/byBox', {
+        const data = await aqsFetch('monitors/byBox', {
             param: selectedParams.join(','),
             bdate: date,
             edate: date,
