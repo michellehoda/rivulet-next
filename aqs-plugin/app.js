@@ -418,30 +418,58 @@ async function fetchNeighborData() {
 async function importToCodap(data, contextName, contextTitle) {
     if (data.length === 0) return;
     
-    // Get all unique keys from data to define attributes
-    const keys = new Set();
+    // Define which attributes belong to the parent (Pollutant) level
+    const parentAttrNames = ['parameter_code', 'parameter', 'units_of_measure'];
+    
+    // Get all unique keys from data to identify child attributes
+    const allKeys = new Set();
     data.forEach(d => {
-        Object.keys(d).forEach(k => keys.add(k));
+        Object.keys(d).forEach(k => allKeys.add(k));
     });
     
-    const attrs = Array.from(keys).map(k => ({ name: k }));
+    const parentAttrs = [];
+    const childAttrs = [];
     
+    allKeys.forEach(key => {
+        if (parentAttrNames.includes(key)) {
+            parentAttrs.push({ name: key });
+        } else {
+            childAttrs.push({ name: key });
+        }
+    });
+    
+    // If for some reason parameter_code isn't in the data, 
+    // we should at least have one parent attribute to avoid errors.
+    if (parentAttrs.length === 0 && allKeys.has('parameter_code')) {
+        parentAttrs.push({ name: 'parameter_code' });
+    }
+
     const tableSetupRequest = {
         action: 'create',
         resource: 'dataContext',
         values: {
             name: contextName,
             title: contextTitle,
-            collections: [{
-                name: 'Measurements',
-                attrs: attrs
-            }]
+            collections: [
+                {
+                    name: 'Pollutants',
+                    title: 'List of Pollutants',
+                    attrs: parentAttrs
+                },
+                {
+                    name: 'Measurements',
+                    title: 'Individual Measurements',
+                    parent: 'Pollutants',
+                    attrs: childAttrs
+                }
+            ]
         }
     };
     
     await codapInterface.sendRequest(tableSetupRequest);
     
-    // Batch insert items
+    // Batch insert items. CODAP automatically distributes values 
+    // between the collections based on the attribute names.
     await codapInterface.sendRequest({
         action: 'create',
         resource: `dataContext[${contextName}].item`,
