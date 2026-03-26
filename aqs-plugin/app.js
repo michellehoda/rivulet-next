@@ -157,43 +157,77 @@ async function findMonitors() {
     listEl.innerHTML = 'Searching for monitors...';
     
     try {
-        const data = await aqsFetch('dailyData/byBox', {
+        // Step 1: Identify monitors that are actually sampling the indicated pollutants on the indicated date
+        const dailyDataResponse = await aqsFetch('dailyData/byBox', {
             param: selectedParams.join(','),
             bdate: date,
             edate: date,
             minlat, maxlat, minlon, maxlon
         });
         
-        monitors = data.Data;
-        if (monitors.length === 0) {
-            listEl.innerHTML = 'No monitors found in this area for selected parameters.';
+        const dailyData = dailyDataResponse.Data || [];
+        if (dailyData.length === 0) {
+            listEl.innerHTML = 'No monitors found with daily data for selected parameters on this date.';
             return;
         }
+
+        // Create a map of site IDs to the parameters they are sampling
+        const siteParamMap = {};
+        dailyData.forEach(d => {
+            const id = `${d.state_code}-${d.county_code}-${d.site_number}`;
+            if (!siteParamMap[id]) siteParamMap[id] = new Set();
+            siteParamMap[id].add(d.parameter_code);
+        });
+
+        // Step 2: Use the monitors interface to identify information about the monitoring site
+        const monitorMetadataResponse = await aqsFetch('monitors/byBox', {
+            param: selectedParams.join(','),
+            bdate: date,
+            edate: date,
+            minlat, maxlat, minlon, maxlon
+        });
+        const monitorMetadata = monitorMetadataResponse.Data || [];
         
-        // Group by site to show unique monitors
+        // Group by site to show unique monitors with metadata
         const sites = {};
-        monitors.forEach(m => {
+        monitorMetadata.forEach(m => {
             const id = `${m.state_code}-${m.county_code}-${m.site_number}`;
-            if (!sites[id]) {
-                sites[id] = {
-                    id,
-                    state_code: m.state_code,
-                    county_code: m.county_code,
-                    site_number: m.site_number,
-                    address: m.address,
-                    city: m.city_name,
-                    parameters: []
-                };
+            
+            // Only include if this site appeared in the dailyData results
+            if (siteParamMap[id]) {
+                if (!sites[id]) {
+                    sites[id] = {
+                        id,
+                        state_code: m.state_code,
+                        county_code: m.county_code,
+                        site_number: m.site_number,
+                        address: m.address || 'No address',
+                        city: m.city_name || 'Unknown City',
+                        county: m.county_name,
+                        state: m.state_name,
+                        latitude: m.latitude,
+                        longitude: m.longitude,
+                        parameters: []
+                    };
+                }
+                // Only add parameters that were confirmed by dailyData
+                if (siteParamMap[id].has(m.parameter_code) && !sites[id].parameters.includes(m.parameter_code)) {
+                    sites[id].parameters.push(m.parameter_code);
+                }
             }
-            sites[id].parameters.push(m.parameter_code);
         });
         
+        if (Object.keys(sites).length === 0) {
+            listEl.innerHTML = 'Monitors were found with data, but metadata could not be retrieved.';
+            return;
+        }
+
         listEl.innerHTML = '<strong>Select a monitor:</strong><br>';
         Object.values(sites).forEach(site => {
             const item = document.createElement('div');
             item.className = 'monitor-item';
             item.innerHTML = `
-                <strong>${site.city || 'Unknown City'}</strong> (${site.id})<br>
+                <strong>${site.city}</strong> (${site.id})<br>
                 ${site.address}<br>
                 <small>Params: ${site.parameters.join(', ')}</small>
             `;
@@ -242,7 +276,17 @@ async function fetchSampleData() {
             site: selectedMonitor.site_number
         });
         
-        const success = await importToCodap(data.Data, 'AQS_Sample_Data', 'Sample Data');
+        // Enrich data with monitor metadata
+        const enrichedData = (data.Data || []).map(row => ({
+            ...row,
+            site_id: selectedMonitor.id,
+            site_address: selectedMonitor.address,
+            site_city: selectedMonitor.city,
+            latitude: row.latitude || selectedMonitor.latitude,
+            longitude: row.longitude || selectedMonitor.longitude
+        }));
+
+        const success = await importToCodap(enrichedData, 'AQS_Sample_Data', 'Sample Data');
         if (success) {
             statusEl.innerText = 'Data imported to CODAP successfully!';
             statusEl.classList.add('success');
@@ -291,7 +335,18 @@ async function fetchAqiData() {
         
         // Process data to include individual AQI and composite AQI
         const processedData = processAqiData(data.Data);
-        const success = await importToCodap(processedData, 'AQS_AQI_Data', 'AQI Data');
+        
+        // Enrich data with monitor metadata
+        const enrichedData = processedData.map(row => ({
+            ...row,
+            site_id: selectedMonitor.id,
+            site_address: selectedMonitor.address,
+            site_city: selectedMonitor.city,
+            latitude: row.latitude || selectedMonitor.latitude,
+            longitude: row.longitude || selectedMonitor.longitude
+        }));
+
+        const success = await importToCodap(enrichedData, 'AQS_AQI_Data', 'AQI Data');
         
         if (success) {
             statusEl.innerText = 'AQI Data imported to CODAP successfully!';
