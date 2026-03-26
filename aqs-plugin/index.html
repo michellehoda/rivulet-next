@@ -8,41 +8,74 @@
     <script src="app.js"></script>
     
     <style>
+        :root {
+            --berkeley-blue: #003262;
+            --california-gold: #FDB515;
+            --founders-rock: #3B7EA1;
+            --medalist: #C2B280;
+            --bay-fog: #DDD;
+            --white: #FFFFFF;
+            --light-gray: #F9F9F9;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Open Sans', 'Univers', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 10px;
-            background-color: #f4f4f9;
+            padding: 0;
+            background-color: var(--light-gray);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        h2 {
+            background-color: var(--berkeley-blue);
+            color: var(--white);
+            margin: 0;
+            padding: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 1.2rem;
+            border-bottom: 4px solid var(--california-gold);
+        }
+
+        .container {
+            padding: 20px;
         }
         
         /* Tabs */
         .tabs {
             display: flex;
             cursor: pointer;
-            border-bottom: 2px solid #ccc;
-            margin-bottom: 10px;
+            background-color: var(--white);
+            padding: 0 10px;
+            border-bottom: 1px solid var(--bay-fog);
         }
         .tab {
-            padding: 10px 15px;
-            background: #eee;
-            border: 1px solid #ccc;
-            border-bottom: none;
-            margin-right: 5px;
-            border-radius: 5px 5px 0 0;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            margin-right: 2px;
+            font-weight: 600;
+            color: var(--berkeley-blue);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+        }
+        .tab:hover {
+            color: var(--founders-rock);
         }
         .tab.active {
-            background: #fff;
-            border-bottom: 2px solid #fff;
-            font-weight: bold;
-            margin-bottom: -2px;
+            color: var(--berkeley-blue);
+            border-bottom: 3px solid var(--california-gold);
         }
+
         .tab-content {
             display: none;
-            padding: 15px;
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 0 0 5px 5px;
-            min-height: 300px;
+            padding: 25px;
+            background: var(--white);
+            min-height: 350px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .tab-content.active {
             display: block;
@@ -50,69 +83,96 @@
         
         /* Forms and Elements */
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: var(--berkeley-blue);
+            font-size: 0.85rem;
+            text-transform: uppercase;
         }
         input[type="text"], input[type="email"], input[type="number"], input[type="date"], select {
             width: 100%;
-            padding: 8px;
+            padding: 10px;
             box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            border: 1px solid var(--bay-fog);
+            border-radius: 2px;
+            font-size: 1rem;
+            font-family: inherit;
         }
+        input:focus {
+            outline: none;
+            border-color: var(--founders-rock);
+            box-shadow: 0 0 0 2px rgba(59, 126, 161, 0.1);
+        }
+
         button {
-            padding: 10px 15px;
-            background-color: #007bff;
-            color: white;
+            padding: 12px 24px;
+            background-color: var(--berkeley-blue);
+            color: var(--white);
             border: none;
-            border-radius: 4px;
+            border-radius: 2px;
             cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: background-color 0.2s;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: var(--founders-rock);
         }
-        .status {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         
-        /* Table and results */
-        #results-container {
+        .secondary-button {
+            background-color: var(--white);
+            color: var(--berkeley-blue);
+            border: 2px solid var(--berkeley-blue);
+        }
+        .secondary-button:hover {
+            background-color: var(--berkeley-blue);
+            color: var(--white);
+        }
+
+        .status {
             margin-top: 20px;
-            overflow-x: auto;
+            padding: 15px;
+            border-radius: 2px;
+            font-size: 0.9rem;
+            font-weight: 600;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th { background-color: #f2f2f2; }
+        .success { background-color: #e6f4ea; color: #1e8e3e; border-left: 4px solid #1e8e3e; }
+        .error { background-color: #fce8e6; color: #d93025; border-left: 4px solid #d93025; }
         
         .monitor-item {
-            border: 1px solid #eee;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 4px;
+            border: 1px solid var(--bay-fog);
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 2px;
             cursor: pointer;
+            transition: all 0.2s;
         }
         .monitor-item:hover {
-            background-color: #f9f9f9;
+            background-color: var(--light-gray);
+            border-color: var(--founders-rock);
         }
         .monitor-item.selected {
-            background-color: #e2f0ff;
-            border-color: #007bff;
+            background-color: #f0f7ff;
+            border: 2px solid var(--berkeley-blue);
         }
+
+        #pollutants-selection {
+            border: 1px solid var(--bay-fog);
+            padding: 15px;
+            background-color: var(--light-gray);
+        }
+        
+        /* Spacing and Utilities */
+        p { margin-top: 0; margin-bottom: 15px; color: #555; }
+        a { color: var(--founders-rock); text-decoration: none; border-bottom: 1px solid transparent; }
+        a:hover { border-bottom: 1px solid var(--founders-rock); }
+
     </style>
 </head>
 <body>
@@ -126,104 +186,105 @@
         <div class="tab" onclick="showTab('tab-neighbors')">V: Neighbors</div>
     </div>
     
-    <!-- Part I: Credentials -->
-    <div id="tab-credentials" class="tab-content active">
-        <p>Enter your AQS API credentials. You can register at <a href="https://aqs.epa.gov/data/api/signup?email=your_email@example.com" target="_blank">epa.gov</a>.</p>
-        <div class="form-group">
-            <label for="email">Email:</label>
-            <input type="email" id="email" placeholder="test@aqs.api">
-        </div>
-        <div class="form-group">
-            <label for="api-key">API Key:</label>
-            <input type="text" id="api-key" placeholder="test">
-        </div>
-        <button onclick="checkAqsStatus()">Check API Status</button>
-        <div id="credentials-status" class="status" style="display:none;"></div>
-    </div>
-    
-    <!-- Part II: Map & Area -->
-    <div id="tab-area" class="tab-content">
-        <div class="form-group">
-            <label>Bounding Box (Degrees):</label>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div>
-                    <label>Min Lat:</label>
-                    <input type="number" id="min-lat" value="37" step="0.1">
-                </div>
-                <div>
-                    <label>Max Lat:</label>
-                    <input type="number" id="max-lat" value="38" step="0.1">
-                </div>
-                <div>
-                    <label>Min Long:</label>
-                    <input type="number" id="min-long" value="-122.5" step="0.1">
-                </div>
-                <div>
-                    <label>Max Long:</label>
-                    <input type="number" id="max-long" value="-121.5" step="0.1">
-                </div>
-            </div>
-        </div>
-        <div class="form-group">
-            <label for="target-date">Target Date:</label>
-            <input type="date" id="target-date" value="2020-04-10">
-        </div>
-        <!-- In a real implementation we could add a map here -->
-    </div>
-    
-    <!-- Part III: Search & Fetch -->
-    <div id="tab-fetch" class="tab-content">
-        <div class="form-group">
-            <label>Select Pollutants:</label>
-            <div id="pollutants-selection" style="margin-bottom:15px; max-height: 150px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
-                <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="88101" checked> PM2.5 (88101)</label>
-                <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="81102"> PM10 (81102)</label>
-                <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="44201" checked> Ozone (44201)</label>
-                <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="42602"> NO2 (42602)</label>
-                <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="42101"> Carbon Monoxide (42101)</label>
-            </div>
-        </div>
-        
-        <button onclick="findMonitors()">Find Monitors in Bounding Box</button>
-        <div id="monitors-list" style="margin-top:15px; max-height: 200px; overflow-y: auto;">
-            <!-- List of monitors -->
-        </div>
-        
-        <div id="fetch-controls" style="display:none; margin-top:15px;">
+    <div class="container">
+        <!-- Part I: Credentials -->
+        <div id="tab-credentials" class="tab-content active">
+            <p>Enter your AQS API credentials. You can register at <a href="https://aqs.epa.gov/data/api/signup?email=your_email@example.com" target="_blank">epa.gov</a>.</p>
             <div class="form-group">
-                <label>Date Range (around target date):</label>
-                <select id="date-range">
-                    <option value="7">+/- 1 Week</option>
-                    <option value="1">+/- 1 Day</option>
-                    <option value="14">+/- 2 Weeks</option>
-                    <option value="30">+/- 1 Month</option>
+                <label for="email">Email:</label>
+                <input type="email" id="email" placeholder="test@aqs.api">
+            </div>
+            <div class="form-group">
+                <label for="api-key">API Key:</label>
+                <input type="text" id="api-key" placeholder="test">
+            </div>
+            <button onclick="checkAqsStatus()">Check API Status</button>
+            <div id="credentials-status" class="status" style="display:none;"></div>
+        </div>
+        
+        <!-- Part II: Map & Area -->
+        <div id="tab-area" class="tab-content">
+            <div class="form-group">
+                <label>Bounding Box (Degrees):</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label>Min Lat:</label>
+                        <input type="number" id="min-lat" value="37" step="0.1">
+                    </div>
+                    <div>
+                        <label>Max Lat:</label>
+                        <input type="number" id="max-lat" value="38" step="0.1">
+                    </div>
+                    <div>
+                        <label>Min Long:</label>
+                        <input type="number" id="min-long" value="-122.5" step="0.1">
+                    </div>
+                    <div>
+                        <label>Max Long:</label>
+                        <input type="number" id="max-long" value="-121.5" step="0.1">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="target-date">Target Date:</label>
+                <input type="date" id="target-date" value="2020-04-10">
+            </div>
+        </div>
+        
+        <!-- Part III: Search & Fetch -->
+        <div id="tab-fetch" class="tab-content">
+            <div class="form-group">
+                <label>Select Pollutants:</label>
+                <div id="pollutants-selection" style="margin-bottom:15px; max-height: 150px; overflow-y: auto;">
+                    <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="88101" checked> PM2.5 (88101)</label>
+                    <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="81102"> PM10 (81102)</label>
+                    <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="44201" checked> Ozone (44201)</label>
+                    <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="42602"> NO2 (42602)</label>
+                    <label style="display: block; font-weight: normal; margin-bottom: 5px;"><input type="checkbox" name="parameter" value="42101"> Carbon Monoxide (42101)</label>
+                </div>
+            </div>
+            
+            <button onclick="findMonitors()">Find Monitors in Bounding Box</button>
+            <div id="monitors-list" style="margin-top:15px; max-height: 200px; overflow-y: auto;">
+                <!-- List of monitors -->
+            </div>
+            
+            <div id="fetch-controls" style="display:none; margin-top:15px;">
+                <div class="form-group">
+                    <label>Date Range (around target date):</label>
+                    <select id="date-range">
+                        <option value="7">+/- 1 Week</option>
+                        <option value="1">+/- 1 Day</option>
+                        <option value="14">+/- 2 Weeks</option>
+                        <option value="30">+/- 1 Month</option>
+                    </select>
+                </div>
+                <button onclick="fetchSampleData()">Fetch & Import Data to CODAP</button>
+            </div>
+            <div id="fetch-status" class="status" style="display:none;"></div>
+        </div>
+        
+        <!-- Part IV: AQI Calculation -->
+        <div id="tab-aqi" class="tab-content">
+            <p>This section will calculate composite AQI from multiple pollutants if available at a site.</p>
+            <button onclick="fetchAqiData()">Fetch All AQI Pollutants & Import</button>
+            <div id="aqi-status" class="status" style="display:none;"></div>
+        </div>
+        
+        <!-- Part V: Neighbors -->
+        <div id="tab-neighbors" class="tab-content">
+            <p>Compare mean concentrations between sites in the bounding box.</p>
+            <div class="form-group">
+                <label for="neighbor-pollutant">Pollutant for comparison:</label>
+                <select id="neighbor-pollutant">
+                    <option value="88101">PM2.5 (88101)</option>
+                    <option value="44201">Ozone (44201)</option>
                 </select>
             </div>
-            <button onclick="fetchSampleData()">Fetch & Import Data to CODAP</button>
+            <button onclick="fetchNeighborData()">Compare Site Means & Import</button>
+            <div id="neighbors-status" class="status" style="display:none;"></div>
         </div>
-        <div id="fetch-status" class="status" style="display:none;"></div>
-    </div>
-    
-    <!-- Part IV: AQI Calculation -->
-    <div id="tab-aqi" class="tab-content">
-        <p>This section will calculate composite AQI from multiple pollutants if available at a site.</p>
-        <button onclick="fetchAqiData()">Fetch All AQI Pollutants & Import</button>
-        <div id="aqi-status" class="status" style="display:none;"></div>
-    </div>
-    
-    <!-- Part V: Neighbors -->
-    <div id="tab-neighbors" class="tab-content">
-        <p>Compare mean concentrations between sites in the bounding box.</p>
-        <div class="form-group">
-            <label for="neighbor-pollutant">Pollutant for comparison:</label>
-            <select id="neighbor-pollutant">
-                <option value="88101">PM2.5 (88101)</option>
-                <option value="44201">Ozone (44201)</option>
-            </select>
-        </div>
-        <button onclick="fetchNeighborData()">Compare Site Means & Import</button>
-        <div id="neighbors-status" class="status" style="display:none;"></div>
-    </div>
+    </div> <!-- End container -->
 
 </body>
 </html>
