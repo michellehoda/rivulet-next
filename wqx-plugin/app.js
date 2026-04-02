@@ -52,6 +52,27 @@ function addDays(dateStr, days) {
     return date.toISOString().split('T')[0];
 }
 
+// Utility: Parse RDB format (Tab-separated with comments and type row)
+function parseRDB(text) {
+    if (!text) return [];
+    const lines = text.split(/\r?\n/);
+    const dataLines = lines.filter(line => line.length > 0 && !line.startsWith('#'));
+    if (dataLines.length < 2) return [];
+    
+    const headers = dataLines[0].split('\t');
+    // Skip the second line which is the data type definition (e.g. 5s, 15s)
+    const rows = dataLines.slice(2);
+    
+    return rows.map(row => {
+        const values = row.split('\t');
+        const obj = {};
+        headers.forEach((header, i) => {
+            obj[header] = values[i];
+        });
+        return obj;
+    });
+}
+
 // Generic Site Search (NWIS)
 async function findGenericSites(pCode, prefix, siteType = 'all', stateCd = null) {
     const minLat = document.getElementById('min-lat').value;
@@ -67,10 +88,10 @@ async function findGenericSites(pCode, prefix, siteType = 'all', stateCd = null)
     statusEl.className = 'status';
     listEl.innerHTML = '';
     
-    let url = `https://waterservices.usgs.gov/nwis/site/?format=json&parameterCd=${pCode}&siteStatus=all&hasDataTypeCd=iv,dv`;
+    let url = `https://waterservices.usgs.gov/nwis/site/?format=rdb&parameterCd=${pCode}&siteStatus=all&hasDataTypeCd=iv,dv`;
     
     if (stateCd) {
-        url += `&stateCd=${stateCd}`;
+        url += `&stateCd=${stateCd.toLowerCase()}`;
     } else {
         const bbox = `${minLong},${minLat},${maxLong},${maxLat}`;
         url += `&bBox=${bbox}`;
@@ -83,40 +104,32 @@ async function findGenericSites(pCode, prefix, siteType = 'all', stateCd = null)
     try {
         const response = await fetch(url);
         if (!response.ok) throw new Error('Failed to fetch sites');
-        const data = await response.json();
+        const text = await response.text();
+        const sites = parseRDB(text);
         
-        const sites = data.value.timeSeries || [];
         if (sites.length === 0) {
             statusEl.innerText = 'No sites found for the given criteria.';
             statusEl.className = 'status error';
             return;
         }
         
-        const uniqueSites = [];
-        const seen = new Set();
-        sites.forEach(ts => {
-            const siteCode = ts.sourceInfo.siteCode[0].value;
-            if (!seen.has(siteCode)) {
-                seen.add(siteCode);
-                uniqueSites.push({
-                    id: siteCode,
-                    name: ts.sourceInfo.siteName
-                });
-            }
-        });
-        
-        state[`${prefix}Sites`] = uniqueSites;
-        statusEl.innerText = `Found ${uniqueSites.length} sites.`;
+        state[`${prefix}Sites`] = sites;
+        statusEl.innerText = `Found ${sites.length} sites.`;
         statusEl.className = 'status success';
         
-        uniqueSites.forEach(site => {
+        sites.forEach(site => {
+            const siteId = site.site_no;
+            const siteName = site.station_nm;
             const item = document.createElement('div');
             item.className = 'monitor-item';
-            item.innerHTML = `<strong>${site.name}</strong><br>ID: ${site.id}`;
+            item.innerHTML = `<strong>${siteName}</strong><br>ID: ${siteId}`;
             item.onclick = () => {
                 document.querySelectorAll(`#${prefix}-sites-list .monitor-item`).forEach(el => el.classList.remove('selected'));
                 item.classList.add('selected');
-                state[`selected${prefix.charAt(0).toUpperCase() + prefix.slice(1)}Site`] = site;
+                state[`selected${prefix.charAt(0).toUpperCase() + prefix.slice(1)}Site`] = {
+                    id: siteId,
+                    name: siteName
+                };
                 document.getElementById(`${prefix}-import-area`).style.display = 'block';
             };
             listEl.appendChild(item);
@@ -141,31 +154,40 @@ async function importGenericData(pCode, prefix, contextName) {
     const statusEl = document.getElementById(`${prefix}-status`);
     statusEl.innerText = 'Importing data to CODAP...';
     
-    const url = `https://waterservices.usgs.gov/nwis/iv/?format=json&sites=${site.id}&parameterCd=${pCode}&startDT=${startDate}&endDT=${endDate}`;
+    const url = `https://waterservices.usgs.gov/nwis/iv/?format=rdb&sites=${site.id}&parameterCd=${pCode}&startDT=${startDate}&endDT=${endDate}`;
     
     try {
         const response = await fetch(url);
         if (!response.ok) throw new Error('Failed to fetch data');
-        const data = await response.json();
+        const text = await response.text();
+        const dataRows = parseRDB(text);
         
-        if (!data.value.timeSeries || data.value.timeSeries.length === 0) {
+        if (dataRows.length === 0) {
             throw new Error('No data found for this site in the selected period.');
         }
+
+        // Find the column that corresponds to the parameter code
+        // It usually looks like "xxxxx_00095_xxxxx" or similar
+        const headers = Object.keys(dataRows[0]);
+        const valueColumn = headers.find(h => h.includes(`_${pCode}_`) && !h.endsWith('_cd'));
         
-        const timeSeries = data.value.timeSeries[0];
-        const values = timeSeries.values[0].value;
-        const variableName = timeSeries.variable.variableName;
-        const unit = timeSeries.variable.unit.unitCode;
-        
-        const codapData = values.map(v => ({
+        if (!valueColumn) {
+            throw new Error('Could not find data column for parameter ' + pCode);
+        }
+
+        const codapData = dataRows.filter(row => row[valueColumn] !== "").map(row => ({
             SiteName: site.name,
             SiteID: site.id,
-            DateTime: v.dateTime,
-            Value: parseFloat(v.value),
-            Characteristic: variableName,
-            Unit: unit
+            DateTime: row.datetime,
+            Value: parseFloat(row[valueColumn]),
+            Characteristic: valueColumn,
+            Unit: "" // Units are harder to extract from RDB without full header parsing
         }));
         
+        if (codapData.length === 0) {
+            throw new Error('All records for this period are empty for parameter ' + pCode);
+        }
+
         await codapInterface.sendRequest({
             action: 'create',
             resource: 'dataContext',
@@ -179,7 +201,7 @@ async function importGenericData(pCode, prefix, contextName) {
                         { name: 'SiteID', type: 'nominal' },
                         { name: 'DateTime', type: 'date' },
                         { name: 'Characteristic', type: 'nominal' },
-                        { name: 'Value', type: 'numeric', unit: unit },
+                        { name: 'Value', type: 'numeric' },
                         { name: 'Unit', type: 'nominal' }
                     ]
                 }]
