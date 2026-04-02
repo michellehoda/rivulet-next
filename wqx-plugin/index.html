@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WQX Water Quality Explorer</title>
+    <script src="../iframe-phone.js"></script>
+    <script src="../CodapInterface.js"></script>
+    <script src="app.js"></script>
+    
+    <style>
+        :root {
+            --usgs-blue: #00264c;
+            --usgs-green: #669933;
+            --usgs-light-blue: #004c99;
+            --bay-fog: #DDD;
+            --white: #FFFFFF;
+            --light-gray: #F9F9F9;
+        }
+
+        body {
+            font-family: 'Open Sans', 'Univers', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--light-gray);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        h2 {
+            background-color: var(--usgs-blue);
+            color: var(--white);
+            margin: 0;
+            padding: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 1.2rem;
+            border-bottom: 4px solid var(--usgs-green);
+        }
+
+        .container {
+            padding: 20px;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            cursor: pointer;
+            background-color: var(--white);
+            padding: 0 10px;
+            border-bottom: 1px solid var(--bay-fog);
+            overflow-x: auto;
+        }
+        .tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            margin-right: 2px;
+            font-weight: 600;
+            color: var(--usgs-blue);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+        }
+        .tab:hover {
+            color: var(--usgs-light-blue);
+        }
+        .tab.active {
+            color: var(--usgs-blue);
+            border-bottom: 3px solid var(--usgs-green);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 25px;
+            background: var(--white);
+            min-height: 350px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Forms and Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: var(--usgs-blue);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        input[type="text"], input[type="email"], input[type="number"], input[type="date"], select {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid var(--bay-fog);
+            border-radius: 2px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--usgs-light-blue);
+            box-shadow: 0 0 0 2px rgba(0, 76, 153, 0.1);
+        }
+
+        button {
+            padding: 12px 24px;
+            background-color: var(--usgs-blue);
+            color: var(--white);
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: var(--usgs-light-blue);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 2px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .success { background-color: #e6f4ea; color: #1e8e3e; border-left: 4px solid #1e8e3e; }
+        .error { background-color: #fce8e6; color: #d93025; border-left: 4px solid #d93025; }
+        
+        .monitor-item {
+            border: 1px solid var(--bay-fog);
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .monitor-item:hover {
+            background-color: var(--light-gray);
+            border-color: var(--usgs-light-blue);
+        }
+        .monitor-item.selected {
+            background-color: #f0f7ff;
+            border: 2px solid var(--usgs-blue);
+        }
+
+        p { margin-top: 0; margin-bottom: 15px; color: #555; }
+    </style>
+</head>
+<body>
+    <h2>Rivulet: USGS Water Quality Explorer</h2>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('tab-intro')">Intro</div>
+        <div class="tab" onclick="showTab('tab-setup')">I: Setup</div>
+        <div class="tab" onclick="showTab('tab-area')">II: Location & Date</div>
+        <div class="tab" onclick="showTab('tab-salinity')">III: Salinity</div>
+        <div class="tab" onclick="showTab('tab-ecoli')">IV: E.Coli</div>
+        <div class="tab" onclick="showTab('tab-oxygen')">V: Oxygen</div>
+        <div class="tab" onclick="showTab('tab-nitrates')">VI: Nitrates</div>
+        <div class="tab" onclick="showTab('tab-lead')">VII: Lead</div>
+    </div>
+    
+    <div class="container">
+        <!-- Intro Tab -->
+        <div id="tab-intro" class="tab-content active">
+            <h3>Water Quality eXchange</h3>
+            <p>This tool was developed to support accessing and processing public water quality data. It allows users to connect to the <strong>United States Geological Survey (USGS)</strong> water data APIs, search for monitoring sites, and explore patterns in water quality.</p>
+            <p>We focus on water quality as a phenomenon, helping to understand how different pollutants impact it and what conditions lead to changes in water quality.</p>
+        </div>
+        
+        <!-- Setup Tab -->
+        <div id="tab-setup" class="tab-content">
+            <h3>I: Connecting with USGS Water Data APIs</h3>
+            <p>The USGS provides hydrological data from several water-related data services. You can sign up for an optional API key to avoid rate limits.</p>
+            <div class="form-group">
+                <label for="api-key">API Key (Optional)</label>
+                <input type="text" id="api-key" placeholder="Enter your USGS API key (if you have one)">
+            </div>
+            <p>Note: Most requests work fine with the default settings.</p>
+        </div>
+        
+        <!-- Location & Date Tab -->
+        <div id="tab-area" class="tab-content">
+            <h3>II: Specifying a Location and Time Period</h3>
+            <p>Define a bounding box and a target date for your investigation.</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label for="min-lat">Min Latitude</label>
+                    <input type="number" id="min-lat" value="37.5" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="max-lat">Max Latitude</label>
+                    <input type="number" id="max-lat" value="38" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="min-long">Min Longitude</label>
+                    <input type="number" id="min-long" value="-122.5" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="max-long">Max Longitude</label>
+                    <input type="number" id="max-long" value="-122" step="0.1">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="target-date">Target Date</label>
+                <input type="date" id="target-date" value="2024-11-11">
+            </div>
+        </div>
+        
+        <!-- Salinity Tab -->
+        <div id="tab-salinity" class="tab-content">
+            <h3>III: Salinity in Estuaries</h3>
+            <p>Salinity behaves in interesting ways in estuaries where fresh and salt water meet. We use <strong>Specific Conductance</strong> (parameter 00095) as a proxy for salinity.</p>
+            <button onclick="findSalinitySites()">Find Salinity Sites</button>
+            <div id="salinity-status" class="status" style="display:none;"></div>
+            <div id="salinity-sites-list" style="margin-top: 20px;"></div>
+            <div id="salinity-import-area" style="display:none; margin-top: 20px;">
+                <button onclick="importSalinityData()">Import Data for Selected Site</button>
+            </div>
+        </div>
+        
+        <!-- E.Coli Tab -->
+        <div id="tab-ecoli" class="tab-content">
+            <h3>IV: E.Coli</h3>
+            <p>E.Coli problems often occur after rains, when sewers release bacteria. We search for E.Coli using Water Quality Portal (WQP) parameters.</p>
+            <button onclick="findEColiSites()">Find E.Coli Sites</button>
+            <div id="ecoli-status" class="status" style="display:none;"></div>
+            <div id="ecoli-sites-list" style="margin-top: 20px;"></div>
+            <div id="ecoli-import-area" style="display:none; margin-top: 20px;">
+                <button onclick="importEColiData()">Import Data for Selected Site</button>
+            </div>
+        </div>
+
+        <!-- Oxygen Tab -->
+        <div id="tab-oxygen" class="tab-content">
+            <h3>V: Oxygen Dissolution</h3>
+            <p>Dissolved oxygen is critical for aquatic life. We search for Dissolved Oxygen (parameter 00300).</p>
+            <button onclick="findGenericSites('00300', 'oxygen')">Find Oxygen Sites</button>
+            <div id="oxygen-status" class="status" style="display:none;"></div>
+            <div id="oxygen-sites-list" style="margin-top: 20px;"></div>
+            <div id="oxygen-import-area" style="display:none; margin-top: 20px;">
+                <button onclick="importGenericData('00300', 'oxygen', 'Oxygen_Data')">Import Data for Selected Site</button>
+            </div>
+        </div>
+        
+        <!-- Nitrates Tab -->
+        <div id="tab-nitrates" class="tab-content">
+            <h3>VI: Nitrates</h3>
+            <p>Nitrates can indicate fertilizer runoff or sewage. We search for Nitrate (parameter 00618).</p>
+            <button onclick="findGenericSites('00618', 'nitrates')">Find Nitrate Sites</button>
+            <div id="nitrates-status" class="status" style="display:none;"></div>
+            <div id="nitrates-sites-list" style="margin-top: 20px;"></div>
+            <div id="nitrates-import-area" style="display:none; margin-top: 20px;">
+                <button onclick="importGenericData('00618', 'nitrates', 'Nitrate_Data')">Import Data for Selected Site</button>
+            </div>
+        </div>
+        
+        <!-- Lead Tab -->
+        <div id="tab-lead" class="tab-content">
+            <h3>VII: Lead</h3>
+            <p>Lead is a toxic heavy metal. We search for Lead (parameter 01051).</p>
+            <button onclick="findGenericSites('01051', 'lead')">Find Lead Sites</button>
+            <div id="lead-status" class="status" style="display:none;"></div>
+            <div id="lead-sites-list" style="margin-top: 20px;"></div>
+            <div id="lead-import-area" style="display:none; margin-top: 20px;">
+                <button onclick="importGenericData('01051', 'lead', 'Lead_Data')">Import Data for Selected Site</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
