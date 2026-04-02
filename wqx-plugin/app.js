@@ -102,8 +102,8 @@ async function findGenericSites(pCode, prefix, siteType = 'all', stateCd = null)
     }
     
     try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Failed to fetch sites');
+        const response = await fetch(url, { mode: 'cors' });
+        if (!response.ok) throw new Error(`API error: ${response.status} ${response.statusText}`);
         const text = await response.text();
         const sites = parseRDB(text);
         
@@ -157,8 +157,8 @@ async function importGenericData(pCode, prefix, contextName) {
     const url = `https://waterservices.usgs.gov/nwis/iv/?format=rdb&sites=${site.id}&parameterCd=${pCode}&startDT=${startDate}&endDT=${endDate}`;
     
     try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Failed to fetch data');
+        const response = await fetch(url, { mode: 'cors' });
+        if (!response.ok) throw new Error(`API error: ${response.status} ${response.statusText}`);
         const text = await response.text();
         const dataRows = parseRDB(text);
         
