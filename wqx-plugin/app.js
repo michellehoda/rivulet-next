@@ -53,7 +53,7 @@ function addDays(dateStr, days) {
 }
 
 // Generic Site Search (NWIS)
-async function findGenericSites(pCode, prefix, siteType = 'all') {
+async function findGenericSites(pCode, prefix, siteType = 'all', stateCd = null) {
     const minLat = document.getElementById('min-lat').value;
     const maxLat = document.getElementById('max-lat').value;
     const minLong = document.getElementById('min-long').value;
@@ -67,8 +67,15 @@ async function findGenericSites(pCode, prefix, siteType = 'all') {
     statusEl.className = 'status';
     listEl.innerHTML = '';
     
-    const bbox = `${minLong},${minLat},${maxLong},${maxLat}`;
-    let url = `https://waterservices.usgs.gov/nwis/site/?format=json&bBox=${bbox}&parameterCd=${pCode}&siteStatus=all`;
+    let url = `https://waterservices.usgs.gov/nwis/site/?format=json&parameterCd=${pCode}&siteStatus=all&hasDataTypeCd=iv,dv`;
+    
+    if (stateCd) {
+        url += `&stateCd=${stateCd}`;
+    } else {
+        const bbox = `${minLong},${minLat},${maxLong},${maxLat}`;
+        url += `&bBox=${bbox}`;
+    }
+
     if (siteType !== 'all') {
         url += `&siteType=${siteType}`;
     }
@@ -196,7 +203,8 @@ async function importGenericData(pCode, prefix, contextName) {
 
 // Specialized function for Salinity Sites
 async function findSalinitySites() {
-    await findGenericSites('00095', 'salinity', 'ES');
+    const stateCd = document.getElementById('salinity-state').value;
+    await findGenericSites('00095', 'salinity', 'ES', stateCd || null);
 }
 
 // Specialized function for Salinity Import
