@@ -204,7 +204,15 @@ async function importGenericData(pCode, prefix, contextName) {
 // Specialized function for Salinity Sites
 async function findSalinitySites() {
     const stateCd = document.getElementById('salinity-state').value;
-    await findGenericSites('00095', 'salinity', 'ES', stateCd || null);
+    if (!stateCd) {
+        const statusEl = document.getElementById('salinity-status');
+        statusEl.style.display = 'block';
+        statusEl.innerText = 'Please select a state first.';
+        statusEl.className = 'status error';
+        return;
+    }
+    // pCode: 00095, prefix: salinity, siteType: ES, stateCd: selectedState
+    await findGenericSites('00095', 'salinity', 'ES', stateCd);
 }
 
 // Specialized function for Salinity Import
