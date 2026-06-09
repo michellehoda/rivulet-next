@@ -68,7 +68,7 @@ function erddapFetch(server, datasetId, variables, constraints) {
         const rangeStr = buildGriddapRange(constraints);
         const queryStr = variables.map(v => `${v}${rangeStr}`).join(',');
         
-        const url = `${server}/griddap/${datasetId}.json?${queryStr}&callback=${callbackName}`;
+        const url = `${server}/griddap/${datasetId}.json?${queryStr}`;
 
         window[callbackName] = function(json) {
             if (!json || !json.table) {
