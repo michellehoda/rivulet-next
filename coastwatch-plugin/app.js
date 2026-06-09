@@ -59,27 +59,41 @@ function buildGriddapRange(constraints) {
 }
 
 /**
- * Main ERDDAP fetcher that tries CORS then falls back to JSONP.
- * This ensures maximum compatibility and follows the standalone preference.
+ * Main ERDDAP fetcher with multi-stage fallback.
+ * 1. Direct fetch (CORS)
+ * 2. AllOrigins Proxy
+ * 3. CorsProxy.io
  */
 async function erddapFetch(server, datasetId, variables, constraints) {
     const rangeStr = buildGriddapRange(constraints);
     const queryStr = variables.map(v => `${v}${rangeStr}`).join(',');
-    const jsonUrl = `${server}/griddap/${datasetId}.json?${queryStr}`;
+    const targetUrl = `${server}/griddap/${datasetId}.json?${queryStr}`;
 
+    // 1. Try direct fetch first
     try {
-        // Try direct fetch first (CORS)
-        const response = await fetch(jsonUrl);
+        const response = await fetch(targetUrl);
         if (response.ok) {
             const json = await response.json();
             return processErddapData(json);
         }
-        console.warn(`Direct fetch returned status ${response.status}. Falling back to JSONP.`);
+        console.warn(`Direct fetch failed (Status ${response.status}). Trying AllOrigins...`);
     } catch (e) {
-        console.warn("Direct fetch failed (likely CORS), falling back to JSONP...");
+        console.warn("Direct fetch blocked (CORS). Trying AllOrigins...");
     }
 
-    return fetchViaJsonp(server, datasetId, variables, constraints);
+    // 2. Try AllOrigins
+    try {
+        return await fetchViaAllOrigins(targetUrl);
+    } catch (e) {
+        console.warn("AllOrigins failed. Trying CorsProxy.io...");
+    }
+
+    // 3. Final attempt: CorsProxy.io
+    try {
+        return await fetchViaCorsProxy(targetUrl);
+    } catch (e) {
+        throw new Error("All fetch attempts failed. The ERDDAP server may be down or unreachable.");
+    }
 }
 
 /**
@@ -93,7 +107,7 @@ function processErddapData(json) {
     return json.table.rows.map(row => {
         const obj = {};
         cols.forEach((col, i) => {
-            const cleanCol = col.split(' ')[0]; // Remove units if present
+            const cleanCol = col.split(' ')[0]; // Remove units
             obj[cleanCol] = row[i];
         });
         return obj;
@@ -101,51 +115,34 @@ function processErddapData(json) {
 }
 
 /**
- * JSONP Fetcher for ERDDAP
- * Note: ERDDAP uses .jsonp extension and .callback parameter.
+ * Fallback via AllOrigins Proxy
  */
-function fetchViaJsonp(server, datasetId, variables, constraints) {
-    return new Promise((resolve, reject) => {
-        const callbackName = 'erddap_callback_' + Math.floor(Math.random() * 1000000);
-        const rangeStr = buildGriddapRange(constraints);
-        const queryStr = variables.map(v => `${v}${rangeStr}`).join(',');
-        
-        const url = `${server}/griddap/${datasetId}.jsonp?${queryStr}&.callback=${callbackName}`;
+async function fetchViaAllOrigins(targetUrl) {
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+    const response = await fetch(proxyUrl);
+    const result = await response.json();
+    
+    if (!result.contents) throw new Error("AllOrigins empty response");
+    
+    // Check for ERDDAP errors in the returned text
+    if (result.contents.trim().startsWith('Error {')) {
+         throw new Error("ERDDAP Server Error via AllOrigins");
+    }
 
-        window[callbackName] = function(json) {
-            try {
-                const processed = processErddapData(json);
-                resolve(processed);
-            } catch (e) {
-                reject(e);
-            } finally {
-                cleanup();
-            }
-        };
+    const json = JSON.parse(result.contents);
+    return processErddapData(json);
+}
 
-        function cleanup() {
-            delete window[callbackName];
-            const scriptTag = document.getElementById(callbackName);
-            if (scriptTag) scriptTag.remove();
-        }
-
-        const script = document.createElement('script');
-        script.id = callbackName;
-        script.src = url;
-        script.onerror = () => {
-            cleanup();
-            reject(new Error("ERDDAP JSONP request failed. The server may be down or the dataset ID is incorrect."));
-        };
-        document.head.appendChild(script);
-        
-        // Safety timeout
-        setTimeout(() => {
-            if (window[callbackName]) {
-                cleanup();
-                reject(new Error("ERDDAP request timed out."));
-            }
-        }, 30000);
-    });
+/**
+ * Fallback via CorsProxy.io
+ */
+async function fetchViaCorsProxy(targetUrl) {
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+    const response = await fetch(proxyUrl);
+    if (!response.ok) throw new Error("CorsProxy.io failed");
+    
+    const json = await response.json();
+    return processErddapData(json);
 }
 
 async function fetchHistoricData() {
