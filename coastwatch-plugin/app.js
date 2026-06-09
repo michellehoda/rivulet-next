@@ -239,6 +239,7 @@ async function fetchThermalData() {
             }
         );
 
+        /*
         // 2. Fetch SST
         const sstData = await erddapFetch(
             'https://coastwatch.noaa.gov/erddap',
@@ -268,7 +269,7 @@ async function fetchThermalData() {
                 sst: sstMap.get(key) || null,
                 grid_point: `${parseFloat(a.latitude).toFixed(2)}, ${parseFloat(a.longitude).toFixed(2)}`
             };
-        }).filter(m => m.sst !== null);
+        }).filter(m => m.sst !== null);*/
 
         const success = await importToCodap(merged, 'Thermal_Expansion_Data', 'Thermal Expansion Study', 'grid_point');
         if (success) {
