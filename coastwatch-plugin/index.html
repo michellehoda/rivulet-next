@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CoastWatch Ocean Explorer</title>
+    <script src="../iframe-phone.js"></script>
+    <script src="../CodapInterface.js"></script>
+    <script src="app.js"></script>
+    
+    <style>
+        :root {
+            --berkeley-blue: #003262;
+            --california-gold: #FDB515;
+            --founders-rock: #3B7EA1;
+            --medalist: #C2B280;
+            --bay-fog: #DDD;
+            --white: #FFFFFF;
+            --light-gray: #F9F9F9;
+        }
+
+        body {
+            font-family: 'Open Sans', 'Univers', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--light-gray);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        h2 {
+            background-color: var(--berkeley-blue);
+            color: var(--white);
+            margin: 0;
+            padding: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 1.2rem;
+            border-bottom: 4px solid var(--california-gold);
+        }
+
+        .container {
+            padding: 20px;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            cursor: pointer;
+            background-color: var(--white);
+            padding: 0 10px;
+            border-bottom: 1px solid var(--bay-fog);
+        }
+        .tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            margin-right: 2px;
+            font-weight: 600;
+            color: var(--berkeley-blue);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+        }
+        .tab:hover {
+            color: var(--founders-rock);
+        }
+        .tab.active {
+            color: var(--berkeley-blue);
+            border-bottom: 3px solid var(--california-gold);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 25px;
+            background: var(--white);
+            min-height: 350px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Forms and Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: var(--berkeley-blue);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        input[type="text"], input[type="number"], input[type="date"], select {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid var(--bay-fog);
+            border-radius: 2px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        button {
+            padding: 12px 24px;
+            background-color: var(--berkeley-blue);
+            color: var(--white);
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: var(--founders-rock);
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 2px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .success { background-color: #e6f4ea; color: #1e8e3e; border-left: 4px solid #1e8e3e; }
+        .warning { background-color: #fff4e5; color: #663c00; border-left: 4px solid #ff9800; }
+        .error { background-color: #fce8e6; color: #d93025; border-left: 4px solid #d93025; }
+        
+        p { margin-top: 0; margin-bottom: 15px; color: #555; }
+    </style>
+</head>
+<body>
+    <h2>Rivulet: CoastWatch Ocean Explorer</h2>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('tab-intro')">Intro</div>
+        <div class="tab" onclick="showTab('tab-area')">I: Location & Date</div>
+        <div class="tab" onclick="showTab('tab-historic')">II: Historic Sea Level</div>
+        <div class="tab" onclick="showTab('tab-thermal')">III: Thermal Expansion</div>
+    </div>
+    
+    <div class="container">
+        <!-- Intro Tab -->
+        <div id="tab-intro" class="tab-content active">
+            <h3>Exploring Sea Level and Ocean Health</h3>
+            <p>This tool allows you to connect to the NOAA CoastWatch and OceanWatch ERDDAP servers to investigate how our oceans are changing.</p>
+            <p>You can explore the different causes for sea level rise, including <strong>thermal expansion</strong> (warmer water taking up more space) and long-term historic patterns.</p>
+            <div style="background: var(--light-gray); padding: 15px; border-left: 4px solid var(--california-gold); margin-top: 20px;">
+                <label>What can you do?</label>
+                <ul style="padding-left: 20px; font-size: 0.9rem; color: #444;">
+                    <li><strong>I: Location & Date</strong> – Set the spatial and temporal boundaries for your investigation.</li>
+                    <li><strong>II: Historic Sea Level</strong> – Compare Sea Surface Height from today, 10 years ago, and 20 years ago.</li>
+                    <li><strong>III: Thermal Expansion</strong> – Explore the relationship between Ocean Temperature and Sea Level height.</li>
+                </ul>
+            </div>
+            <button onclick="showTab('tab-area')" style="margin-top: 20px;">Get Started &rarr;</button>
+        </div>
+
+        <!-- Part I: Area & Date -->
+        <div id="tab-area" class="tab-content">
+            <div class="form-group">
+                <label>Bounding Box (Degrees):</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label>Min Lat:</label>
+                        <input type="number" id="min-lat" value="25.0" step="0.1">
+                    </div>
+                    <div>
+                        <label>Max Lat:</label>
+                        <input type="number" id="max-lat" value="27.0" step="0.1">
+                    </div>
+                    <div>
+                        <label>Min Long:</label>
+                        <input type="number" id="min-long" value="-85.0" step="0.1">
+                    </div>
+                    <div>
+                        <label>Max Long:</label>
+                        <input type="number" id="max-long" value="-83.0" step="0.1">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="target-date">Target Date:</label>
+                <input type="date" id="target-date" value="2023-12-15">
+            </div>
+            <p><small>Note: Sea level data starts from 1993. SST data availability varies by region.</small></p>
+        </div>
+        
+        <!-- Part II: Historic -->
+        <div id="tab-historic" class="tab-content">
+            <p>Compare the distribution of Sea Surface Height (Absolute Dynamic Topography) across three decades.</p>
+            <button onclick="fetchHistoricData()">Fetch & Compare 3 Decades</button>
+            <div id="historic-status" class="status" style="display:none;"></div>
+        </div>
+        
+        <!-- Part III: Thermal -->
+        <div id="tab-thermal" class="tab-content">
+            <p>Investigate the mechanism of thermal expansion by comparing Sea Surface Temperature (SST) and Sea Surface Height (ADT) over a 20-day window.</p>
+            <button onclick="fetchThermalData()">Fetch SST & ADT Correlation</button>
+            <div id="thermal-status" class="status" style="display:none;"></div>
+        </div>
+    </div>
+
+</body>
+</html>
