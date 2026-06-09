@@ -29,40 +29,59 @@ function showTab(tabId) {
 }
 
 /**
- * ERDDAP Fetcher for griddap protocol
- * Returns JSON data in a flat array of objects format
+ * ERDDAP Fetcher via JSONP
+ * Bypass CORS by using ERDDAP's native .jsonp support.
  */
-async function erddapFetch(server, datasetId, variables, constraints) {
-    const constraintStr = Object.entries(constraints)
-        .map(([k, v]) => {
-            if (v instanceof Date) {
-                return `${k}(${v.toISOString().split('T')[0]}T00:00:00Z)`;
-            }
-            return `${k}(${v})`;
-        })
-        .join(',');
+function erddapFetch(server, datasetId, variables, constraints) {
+    return new Promise((resolve, reject) => {
+        const callbackName = 'erddap_callback_' + Math.floor(Math.random() * 1000000);
+        
+        // Construct Constraints String
+        const constraintStr = Object.entries(constraints)
+            .map(([k, v]) => {
+                if (v instanceof Date) {
+                    return `${k}(${v.toISOString().split('T')[0]}T00:00:00Z)`;
+                }
+                return `${k}(${v})`;
+            })
+            .join(''); // ERDDAP griddap uses [] for constraints, we'll add those below
 
-    const varStr = variables.join(',');
-    // .json?var1,var2[(min):step:(max)]
-    // For simplicity, we assume the server handles the bounding box via the query string
-    // ERDDAP griddap URL format: [base]/griddap/[datasetID].[response]?[var][constraints]
-    
-    const url = `${server}/griddap/${datasetId}.json?${varStr}[${constraintStr}]`;
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`ERDDAP error: ${response.statusText}`);
-    }
-    const json = await response.json();
-    
-    // Convert ERDDAP JSON (columns + rows) to array of objects
-    const cols = json.table.columnNames;
-    return json.table.rows.map(row => {
-        const obj = {};
-        cols.forEach((col, i) => {
-            obj[col] = row[i];
-        });
-        return obj;
+        const varStr = variables.join(',');
+        
+        // ERDDAP griddap URL format for JSONP:
+        // [base]/griddap/[datasetID].jsonp?[var][constraints]&callback=[name]
+        const url = `${server}/griddap/${datasetId}.jsonp?${varStr}[${constraintStr}]&callback=${callbackName}`;
+
+        // Define the global callback
+        window[callbackName] = function(json) {
+            const cols = json.table.columnNames;
+            const data = json.table.rows.map(row => {
+                const obj = {};
+                cols.forEach((col, i) => {
+                    // Clean up column names (remove units like " (m)") to match previous logic
+                    const cleanCol = col.split(' ')[0];
+                    obj[cleanCol] = row[i];
+                });
+                return obj;
+            });
+            
+            resolve(data);
+            
+            // Cleanup
+            delete window[callbackName];
+            const scriptTag = document.getElementById(callbackName);
+            if (scriptTag) scriptTag.remove();
+        };
+
+        // Inject Script Tag
+        const script = document.createElement('script');
+        script.id = callbackName;
+        script.src = url;
+        script.onerror = () => {
+            reject(new Error("Failed to load data from ERDDAP (JSONP Error). Check your connection or bounding box."));
+            delete window[callbackName];
+        };
+        document.head.appendChild(script);
     });
 }
 
