@@ -238,7 +238,8 @@ async function fetchThermalData() {
                 'longitude>=': minLong,
                 'longitude<=': maxLong
             }
-        );*/
+        );
+        */
 
         
         // 2. Fetch SST
