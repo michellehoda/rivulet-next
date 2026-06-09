@@ -100,7 +100,8 @@ function erddapFetch(server, datasetId, variables, constraints) {
         script.src = url;
         script.onerror = () => {
             cleanup();
-            console.warn("JSONP failed, attempting CORS proxy fallback...");
+            console.warn("JSON failed, attempting CORS proxy fallback...");
+            console.warn("Original URL was: " + url);
             fetchViaProxy(server, datasetId, variables, constraints)
                 .then(resolve)
                 .catch(reject);
@@ -228,16 +229,28 @@ async function fetchThermalData() {
         const adtData = await erddapFetch(
             'https://erddap.aoml.noaa.gov/hdb/erddap',
             datasetId,
-            ['adt'],
-            { 'time>=': start, 'time<=': end, 'latitude>=': minLat, 'latitude<=': maxLat, 'longitude>=': minLong, 'longitude<=': maxLong }
+            ['adt'], {
+                'time>=': start,
+                'time<=': end,
+                'latitude>=': minLat,
+                'latitude<=': maxLat,
+                'longitude>=': minLong,
+                'longitude<=': maxLong
+            }
         );
 
         // 2. Fetch SST
         const sstData = await erddapFetch(
             'https://coastwatch.noaa.gov/erddap',
             'noaacwBLENDEDCsstDaily',
-            ['analysed_sst'],
-            { 'time>=': start, 'time<=': end, 'latitude>=': minLat, 'latitude<=': maxLat, 'longitude>=': minLong, 'longitude<=': maxLong }
+            ['analysed_sst'],{
+                'time>=': start,
+                'time<=': end,
+                'latitude>=': minLat,
+                'latitude<=': maxLat,
+                'longitude>=': minLong,
+                'longitude<=': maxLong
+            }
         );
 
         // 3. Merge by Time/Lat/Long
