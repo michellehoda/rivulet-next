@@ -256,6 +256,7 @@ async function fetchThermalData() {
             }
         );
 
+        /*
         // 3. Merge by Time/Lat/Long
         // We normalize times to dates for merging since resolutions might vary slightly
         const sstMap = new Map();
