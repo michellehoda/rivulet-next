@@ -225,6 +225,7 @@ async function fetchThermalData() {
         // Updated threshold to 2023
         const datasetId = targetDate.getFullYear() >= 2023 ? `SEA_SURFACE_HEIGHT_NRT_${targetDate.getFullYear()}` : `SEA_SURFACE_HEIGHT_${targetDate.getFullYear()}_v3`;
         
+        /*
         // 1. Fetch ADT
         const adtData = await erddapFetch(
             'https://erddap.aoml.noaa.gov/hdb/erddap',
@@ -237,9 +238,9 @@ async function fetchThermalData() {
                 'longitude>=': minLong,
                 'longitude<=': maxLong
             }
-        );
+        );*/
 
-        /*
+        
         // 2. Fetch SST
         const sstData = await erddapFetch(
             'https://coastwatch.noaa.gov/erddap',
