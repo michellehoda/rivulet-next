@@ -29,35 +29,47 @@ function showTab(tabId) {
 }
 
 /**
+ * Helper to build griddap range string [(min):1:(max)]
+ */
+function buildGriddapRange(constraints) {
+    const dims = ['time', 'latitude', 'longitude'];
+    let rangeStr = '';
+    dims.forEach(dim => {
+        const low = constraints[`${dim}>=`];
+        const high = constraints[`${dim}<=`];
+        if (low !== undefined && high !== undefined) {
+            let s = low, e = high;
+            if (low instanceof Date) {
+                const yyyy = low.getFullYear();
+                const mm = String(low.getMonth() + 1).padStart(2, '0');
+                const dd = String(low.getDate()).padStart(2, '0');
+                s = `${yyyy}-${mm}-${dd} 00:00:00`;
+            }
+            if (high instanceof Date) {
+                const yyyy = high.getFullYear();
+                const mm = String(high.getMonth() + 1).padStart(2, '0');
+                const dd = String(high.getDate()).padStart(2, '0');
+                e = `${yyyy}-${mm}-${dd} 00:00:00`;
+            }
+            // Use :1: stride as requested
+            rangeStr += `[(${s}):1:(${e})]`;
+        }
+    });
+    return rangeStr;
+}
+
+/**
  * ERDDAP Fetcher via JSONP
  * Bypass CORS by using ERDDAP's native .jsonp support.
- * Correctly formats griddap bracket notation [(min):(max)].
  */
 function erddapFetch(server, datasetId, variables, constraints) {
     return new Promise((resolve, reject) => {
         const callbackName = 'erddap_callback_' + Math.floor(Math.random() * 1000000);
-        
-        // Construct griddap range constraints [(min):(max)]
-        // We group dimensions to build the bracketed string
-        const dims = ['time', 'latitude', 'longitude'];
-        let rangeStr = '';
-        dims.forEach(dim => {
-            const low = constraints[`${dim}>=`];
-            const high = constraints[`${dim}<=`];
-            if (low !== undefined && high !== undefined) {
-                let s = low, e = high;
-                if (low instanceof Date) s = low.toISOString().split('T')[0] + "T00:00:00Z";
-                if (high instanceof Date) e = high.toISOString().split('T')[0] + "T00:00:00Z";
-                rangeStr += `[(${s}):(${e})]`;
-            }
-        });
-
-        // variables: ['adt'] -> adt[(time):...][(lat):...][(lon):...]
+        const rangeStr = buildGriddapRange(constraints);
         const queryStr = variables.map(v => `${v}${rangeStr}`).join(',');
         
         const url = `${server}/griddap/${datasetId}.jsonp?${queryStr}&callback=${callbackName}`;
 
-        // Define the global callback
         window[callbackName] = function(json) {
             if (!json || !json.table) {
                 reject(new Error("Invalid data format received from ERDDAP."));
@@ -88,7 +100,6 @@ function erddapFetch(server, datasetId, variables, constraints) {
         script.src = url;
         script.onerror = () => {
             cleanup();
-            // If JSONP fails, try one last fallback via a public CORS proxy
             console.warn("JSONP failed, attempting CORS proxy fallback...");
             fetchViaProxy(server, datasetId, variables, constraints)
                 .then(resolve)
@@ -102,38 +113,35 @@ function erddapFetch(server, datasetId, variables, constraints) {
  * Fallback fetcher using a public CORS proxy
  */
 async function fetchViaProxy(server, datasetId, variables, constraints) {
-    const dims = ['time', 'latitude', 'longitude'];
-    let rangeStr = '';
-    dims.forEach(dim => {
-        const low = constraints[`${dim}>=`];
-        const high = constraints[`${dim}<=`];
-        if (low !== undefined && high !== undefined) {
-            let s = low, e = high;
-            if (low instanceof Date) s = low.toISOString().split('T')[0] + "T00:00:00Z";
-            if (high instanceof Date) e = high.toISOString().split('T')[0] + "T00:00:00Z";
-            rangeStr += `[(${s}):(${e})]`;
-        }
-    });
-
+    const rangeStr = buildGriddapRange(constraints);
     const queryStr = variables.map(v => `${v}${rangeStr}`).join(',');
     const targetUrl = `${server}/griddap/${datasetId}.json?${queryStr}`;
     const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(targetUrl);
 
-    const response = await fetch(proxyUrl);
-    const result = await response.json();
-    if (!result.contents) throw new Error("CORS proxy failed to retrieve data.");
-    
-    const json = JSON.parse(result.contents);
-    
-    const cols = json.table.columnNames;
-    return json.table.rows.map(row => {
-        const obj = {};
-        cols.forEach((col, i) => {
-            const cleanCol = col.split(' ')[0];
-            obj[cleanCol] = row[i];
+    try {
+        const response = await fetch(proxyUrl);
+        const result = await response.json();
+        
+        if (!result.contents) throw new Error("CORS proxy failed.");
+
+        // Check for ERDDAP errors in the returned text
+        if (result.contents.trim().startsWith('Error {')) {
+             throw new Error(result.contents);
+        }
+
+        const json = JSON.parse(result.contents);
+        const cols = json.table.columnNames;
+        return json.table.rows.map(row => {
+            const obj = {};
+            cols.forEach((col, i) => {
+                const cleanCol = col.split(' ')[0];
+                obj[cleanCol] = row[i];
+            });
+            return obj;
         });
-        return obj;
-    });
+    } catch (e) {
+        throw e;
+    }
 }
 
 async function fetchHistoricData() {
@@ -159,7 +167,8 @@ async function fetchHistoricData() {
 
     try {
         for (const y of years) {
-            const datasetId = y.year >= 2022 ? `SEA_SURFACE_HEIGHT_NRT_${y.year}` : `SEA_SURFACE_HEIGHT_${y.year}_v3`;
+            // Updated threshold to 2023 as requested
+            const datasetId = y.year >= 2023 ? `SEA_SURFACE_HEIGHT_NRT_${y.year}` : `SEA_SURFACE_HEIGHT_${y.year}_v3`;
             
             // 10 day window around the date in that specific year
             const d = new Date(targetDate);
@@ -212,10 +221,13 @@ async function fetchThermalData() {
     const end = new Date(targetDate); end.setDate(targetDate.getDate() + 10);
 
     try {
+        // Updated threshold to 2023
+        const datasetId = targetDate.getFullYear() >= 2023 ? `SEA_SURFACE_HEIGHT_NRT_${targetDate.getFullYear()}` : `SEA_SURFACE_HEIGHT_${targetDate.getFullYear()}_v3`;
+        
         // 1. Fetch ADT
         const adtData = await erddapFetch(
             'https://erddap.aoml.noaa.gov/hdb/erddap',
-            targetDate.getFullYear() >= 2024 ? `SEA_SURFACE_HEIGHT_NRT_${targetDate.getFullYear()}` : `SEA_SURFACE_HEIGHT_${targetDate.getFullYear()}_v3`,
+            datasetId,
             ['adt'],
             { 'time>=': start, 'time<=': end, 'latitude>=': minLat, 'latitude<=': maxLat, 'longitude>=': minLong, 'longitude<=': maxLong }
         );
