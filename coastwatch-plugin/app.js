@@ -31,34 +31,42 @@ function showTab(tabId) {
 /**
  * ERDDAP Fetcher via JSONP
  * Bypass CORS by using ERDDAP's native .jsonp support.
+ * Correctly formats griddap bracket notation [(min):(max)].
  */
 function erddapFetch(server, datasetId, variables, constraints) {
     return new Promise((resolve, reject) => {
         const callbackName = 'erddap_callback_' + Math.floor(Math.random() * 1000000);
         
-        // Construct Constraints String
-        const constraintStr = Object.entries(constraints)
-            .map(([k, v]) => {
-                if (v instanceof Date) {
-                    return `${k}(${v.toISOString().split('T')[0]}T00:00:00Z)`;
-                }
-                return `${k}(${v})`;
-            })
-            .join(''); // ERDDAP griddap uses [] for constraints, we'll add those below
+        // Construct griddap range constraints [(min):(max)]
+        // We group dimensions to build the bracketed string
+        const dims = ['time', 'latitude', 'longitude'];
+        let rangeStr = '';
+        dims.forEach(dim => {
+            const low = constraints[`${dim}>=`];
+            const high = constraints[`${dim}<=`];
+            if (low !== undefined && high !== undefined) {
+                let s = low, e = high;
+                if (low instanceof Date) s = low.toISOString().split('T')[0] + "T00:00:00Z";
+                if (high instanceof Date) e = high.toISOString().split('T')[0] + "T00:00:00Z";
+                rangeStr += `[(${s}):(${e})]`;
+            }
+        });
 
-        const varStr = variables.join(',');
+        // variables: ['adt'] -> adt[(time):...][(lat):...][(lon):...]
+        const queryStr = variables.map(v => `${v}${rangeStr}`).join(',');
         
-        // ERDDAP griddap URL format for JSONP:
-        // [base]/griddap/[datasetID].jsonp?[var][constraints]&callback=[name]
-        const url = `${server}/griddap/${datasetId}.jsonp?${varStr}[${constraintStr}]&callback=${callbackName}`;
+        const url = `${server}/griddap/${datasetId}.jsonp?${queryStr}&callback=${callbackName}`;
 
         // Define the global callback
         window[callbackName] = function(json) {
+            if (!json || !json.table) {
+                reject(new Error("Invalid data format received from ERDDAP."));
+                return;
+            }
             const cols = json.table.columnNames;
             const data = json.table.rows.map(row => {
                 const obj = {};
                 cols.forEach((col, i) => {
-                    // Clean up column names (remove units like " (m)") to match previous logic
                     const cleanCol = col.split(' ')[0];
                     obj[cleanCol] = row[i];
                 });
@@ -66,22 +74,65 @@ function erddapFetch(server, datasetId, variables, constraints) {
             });
             
             resolve(data);
-            
-            // Cleanup
+            cleanup();
+        };
+
+        function cleanup() {
             delete window[callbackName];
             const scriptTag = document.getElementById(callbackName);
             if (scriptTag) scriptTag.remove();
-        };
+        }
 
-        // Inject Script Tag
         const script = document.createElement('script');
         script.id = callbackName;
         script.src = url;
         script.onerror = () => {
-            reject(new Error("Failed to load data from ERDDAP (JSONP Error). Check your connection or bounding box."));
-            delete window[callbackName];
+            cleanup();
+            // If JSONP fails, try one last fallback via a public CORS proxy
+            console.warn("JSONP failed, attempting CORS proxy fallback...");
+            fetchViaProxy(server, datasetId, variables, constraints)
+                .then(resolve)
+                .catch(reject);
         };
         document.head.appendChild(script);
+    });
+}
+
+/**
+ * Fallback fetcher using a public CORS proxy
+ */
+async function fetchViaProxy(server, datasetId, variables, constraints) {
+    const dims = ['time', 'latitude', 'longitude'];
+    let rangeStr = '';
+    dims.forEach(dim => {
+        const low = constraints[`${dim}>=`];
+        const high = constraints[`${dim}<=`];
+        if (low !== undefined && high !== undefined) {
+            let s = low, e = high;
+            if (low instanceof Date) s = low.toISOString().split('T')[0] + "T00:00:00Z";
+            if (high instanceof Date) e = high.toISOString().split('T')[0] + "T00:00:00Z";
+            rangeStr += `[(${s}):(${e})]`;
+        }
+    });
+
+    const queryStr = variables.map(v => `${v}${rangeStr}`).join(',');
+    const targetUrl = `${server}/griddap/${datasetId}.json?${queryStr}`;
+    const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(targetUrl);
+
+    const response = await fetch(proxyUrl);
+    const result = await response.json();
+    if (!result.contents) throw new Error("CORS proxy failed to retrieve data.");
+    
+    const json = JSON.parse(result.contents);
+    
+    const cols = json.table.columnNames;
+    return json.table.rows.map(row => {
+        const obj = {};
+        cols.forEach((col, i) => {
+            const cleanCol = col.split(' ')[0];
+            obj[cleanCol] = row[i];
+        });
+        return obj;
     });
 }
 
