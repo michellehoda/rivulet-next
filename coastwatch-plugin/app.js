@@ -59,34 +59,68 @@ function buildGriddapRange(constraints) {
 }
 
 /**
- * ERDDAP Fetcher via JSONP
- * Bypass CORS by using ERDDAP's native .jsonp support.
+ * Main ERDDAP fetcher that tries CORS then falls back to JSONP.
+ * This ensures maximum compatibility and follows the standalone preference.
  */
-function erddapFetch(server, datasetId, variables, constraints) {
+async function erddapFetch(server, datasetId, variables, constraints) {
+    const rangeStr = buildGriddapRange(constraints);
+    const queryStr = variables.map(v => `${v}${rangeStr}`).join(',');
+    const jsonUrl = `${server}/griddap/${datasetId}.json?${queryStr}`;
+
+    try {
+        // Try direct fetch first (CORS)
+        const response = await fetch(jsonUrl);
+        if (response.ok) {
+            const json = await response.json();
+            return processErddapData(json);
+        }
+        console.warn(`Direct fetch returned status ${response.status}. Falling back to JSONP.`);
+    } catch (e) {
+        console.warn("Direct fetch failed (likely CORS), falling back to JSONP...");
+    }
+
+    return fetchViaJsonp(server, datasetId, variables, constraints);
+}
+
+/**
+ * Common data processor for ERDDAP JSON responses
+ */
+function processErddapData(json) {
+    if (!json || !json.table || !json.table.columnNames || !json.table.rows) {
+        throw new Error("Invalid data format received from ERDDAP.");
+    }
+    const cols = json.table.columnNames;
+    return json.table.rows.map(row => {
+        const obj = {};
+        cols.forEach((col, i) => {
+            const cleanCol = col.split(' ')[0]; // Remove units if present
+            obj[cleanCol] = row[i];
+        });
+        return obj;
+    });
+}
+
+/**
+ * JSONP Fetcher for ERDDAP
+ * Note: ERDDAP uses .jsonp extension and .callback parameter.
+ */
+function fetchViaJsonp(server, datasetId, variables, constraints) {
     return new Promise((resolve, reject) => {
         const callbackName = 'erddap_callback_' + Math.floor(Math.random() * 1000000);
         const rangeStr = buildGriddapRange(constraints);
         const queryStr = variables.map(v => `${v}${rangeStr}`).join(',');
         
-        const url = `${server}/griddap/${datasetId}.json?${queryStr}`;
+        const url = `${server}/griddap/${datasetId}.jsonp?${queryStr}&.callback=${callbackName}`;
 
         window[callbackName] = function(json) {
-            if (!json || !json.table) {
-                reject(new Error("Invalid data format received from ERDDAP."));
-                return;
+            try {
+                const processed = processErddapData(json);
+                resolve(processed);
+            } catch (e) {
+                reject(e);
+            } finally {
+                cleanup();
             }
-            const cols = json.table.columnNames;
-            const data = json.table.rows.map(row => {
-                const obj = {};
-                cols.forEach((col, i) => {
-                    const cleanCol = col.split(' ')[0];
-                    obj[cleanCol] = row[i];
-                });
-                return obj;
-            });
-            
-            resolve(data);
-            cleanup();
         };
 
         function cleanup() {
@@ -100,49 +134,18 @@ function erddapFetch(server, datasetId, variables, constraints) {
         script.src = url;
         script.onerror = () => {
             cleanup();
-            console.warn("JSON failed, attempting CORS proxy fallback...");
-            console.warn("Original URL was: " + url);
-            fetchViaProxy(server, datasetId, variables, constraints)
-                .then(resolve)
-                .catch(reject);
+            reject(new Error("ERDDAP JSONP request failed. The server may be down or the dataset ID is incorrect."));
         };
         document.head.appendChild(script);
-    });
-}
-
-/**
- * Fallback fetcher using a public CORS proxy
- */
-async function fetchViaProxy(server, datasetId, variables, constraints) {
-    const rangeStr = buildGriddapRange(constraints);
-    const queryStr = variables.map(v => `${v}${rangeStr}`).join(',');
-    const targetUrl = `${server}/griddap/${datasetId}.json?${queryStr}`;
-    const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(targetUrl);
-
-    try {
-        const response = await fetch(proxyUrl);
-        const result = await response.json();
         
-        if (!result.contents) throw new Error("CORS proxy failed.");
-
-        // Check for ERDDAP errors in the returned text
-        if (result.contents.trim().startsWith('Error {')) {
-             throw new Error(result.contents);
-        }
-
-        const json = JSON.parse(result.contents);
-        const cols = json.table.columnNames;
-        return json.table.rows.map(row => {
-            const obj = {};
-            cols.forEach((col, i) => {
-                const cleanCol = col.split(' ')[0];
-                obj[cleanCol] = row[i];
-            });
-            return obj;
-        });
-    } catch (e) {
-        throw e;
-    }
+        // Safety timeout
+        setTimeout(() => {
+            if (window[callbackName]) {
+                cleanup();
+                reject(new Error("ERDDAP request timed out."));
+            }
+        }, 30000);
+    });
 }
 
 async function fetchHistoricData() {
