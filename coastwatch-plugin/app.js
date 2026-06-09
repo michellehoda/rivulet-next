@@ -159,7 +159,7 @@ async function fetchHistoricData() {
 
     try {
         for (const y of years) {
-            const datasetId = y.year >= 2024 ? `SEA_SURFACE_HEIGHT_NRT_${y.year}` : `SEA_SURFACE_HEIGHT_${y.year}_v3`;
+            const datasetId = y.year >= 2022 ? `SEA_SURFACE_HEIGHT_NRT_${y.year}` : `SEA_SURFACE_HEIGHT_${y.year}_v3`;
             
             // 10 day window around the date in that specific year
             const d = new Date(targetDate);
