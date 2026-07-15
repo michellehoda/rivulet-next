@@ -25,9 +25,9 @@
   <circle cx="1140" cy="120" r="180" fill="#0C4E7A" fill-opacity="0.22"/>
   <circle cx="1110" cy="97" r="132" fill="#F7C948" fill-opacity="0.17"/>
 
-  <path d="M-40 255C110 220 210 190 320 210C430 230 540 320 660 315C780 310 850 232 970 220C1080 210 1220 232 1440 190" stroke="#8FD2FF" stroke-opacity="0.35" stroke-width="6" fill="none" stroke-linecap="round"/>
-  <path d="M-40 294C90 260 220 238 330 255C440 272 550 332 670 330C800 328 900 258 1030 245C1150 232 1270 250 1440 232" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="4" fill="none" stroke-linecap="round"/>
-  <path d="M-20 345C140 306 260 292 380 310C500 329 640 379 770 368C900 357 1030 302 1150 295C1240 291 1330 306 1450 330" stroke="url(#wave)" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M-40 255C110 220 210 190 320 210C430 230 540 320 660 315C780 310 850 232 970 220C1080 210 1220 232 1440 190" stroke="#FDB515" stroke-opacity="0.35" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M-40 294C90 260 220 238 330 255C440 272 550 332 670 330C800 328 900 258 1030 245C1150 232 1270 250 1440 232" stroke="#8FD2FF" stroke-opacity="0.65" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M-20 345C140 306 260 292 380 310C500 329 640 379 770 368C900 357 1030 302 1150 295C1240 291 1330 306 1450 330" stroke="#003262" stroke-opacity="0.95" stroke-width="8" fill="none" stroke-linecap="round"/>
 
   <g filter="url(#shadow)">
     <rect x="110" y="54" width="520" height="220" rx="24" fill="url(#panel)"/>
