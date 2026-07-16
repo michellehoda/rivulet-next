@@ -24,7 +24,7 @@ Drag one of the plugin links below into a fresh CODAP document to load it:
 
 1. Open a fresh CODAP document.
 2. Drag your chosen plugin link onto the CODAP screen.
-3. Follow the tabs in the plugin to set up and run the investigation.
+3. Follow the tabs in the plugin to set up and fetch data for a science investigation.
 
 ## Project notes
 
